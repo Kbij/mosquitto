@@ -541,7 +541,7 @@ void net__print_ssl_error(struct mosquitto *mosq)
 
 	e = ERR_get_error();
 	while(e){
-		log__printf(mosq, MOSQ_LOG_ERR, "OpenSSL Error[%d]: %s", num, ERR_error_string(e, ebuf));
+		log__printf(mosq, MOSQ_LOG_ERR, "Client: %s, OpenSSL Error[%d]: %s", mosq->id, num, ERR_error_string(e, ebuf));
 		e = ERR_get_error();
 		num++;
 	}
@@ -704,6 +704,8 @@ static int net__init_ssl_ctx(struct mosquitto *mosq)
 #endif
 		/* Disable compression */
 		SSL_CTX_set_options(mosq->ssl_ctx, SSL_OP_NO_COMPRESSION);
+
+		SSL_CTX_set_read_ahead(mosq->ssl_ctx, 1);
 
 		/* Set ALPN */
 		if(mosq->tls_alpn) {
@@ -936,7 +938,7 @@ int net__socket_connect(struct mosquitto *mosq, const char *host, uint16_t port,
 
 
 #ifdef WITH_TLS
-static int net__handle_ssl(struct mosquitto* mosq, int ret)
+static int net__handle_ssl(struct mosquitto* mosq, int ret, bool read)
 {
 	int err;
 
@@ -954,7 +956,25 @@ static int net__handle_ssl(struct mosquitto* mosq, int ret)
 #endif
 		errno = EAGAIN;
 	}
+	else if (err == SSL_ERROR_SSL && errno == EAGAIN)
+	{
+		log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Fixing SSL_ERROR_SSL 11/EAGAIN", mosq->id);
+		ret = -1;
+		errno = EAGAIN;
+		mosq->empty_packets++;
+	}
+	else if (err == SSL_ERROR_SYSCALL && errno == 0 && mosq->empty_packets < 5 && read) {
+	    /* SSL Reports SSL_ERROR_SYSCALL, but errno indicates no real error (errno == 0)
+		 * Occurs when fragmented IP Packets arrive, and we try to read them.
+		 * SSL_read returns "0" bytes read. However, this does not mean that the connection is closed by the client */
+
+		log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Fixing SSL_ERROR_SYSCALL 0/Success", mosq->id);
+		ret = -1;
+		errno = EAGAIN;
+		mosq->empty_packets++;
+	}
 	else {
+		log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, SSL_ERROR_SYSCALL, ret: %d, err: %d, errno: %d", mosq->id, ret, err, errno);
 		net__print_ssl_error(mosq);
 		errno = EPROTO;
 	}
@@ -978,8 +998,13 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 	if(mosq->ssl){
 		ret = SSL_read(mosq->ssl, buf, (int)count);
 		if(ret <= 0){
-			ret = net__handle_ssl(mosq, ret);
+			ret = net__handle_ssl(mosq, ret, true);
 		}
+		else
+		{
+			mosq->empty_packets = 0;
+		}
+
 		return (ssize_t )ret;
 	}else{
 		/* Call normal read/recv */
@@ -1010,7 +1035,7 @@ ssize_t net__write(struct mosquitto *mosq, const void *buf, size_t count)
 		mosq->want_write = false;
 		ret = SSL_write(mosq->ssl, buf, (int)count);
 		if(ret < 0){
-			ret = net__handle_ssl(mosq, ret);
+			ret = net__handle_ssl(mosq, ret, false);
 		}
 		return (ssize_t )ret;
 	}else{

@@ -330,7 +330,14 @@ void do_disconnect(struct mosquitto *context, int reason)
 						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s disconnected due to protocol error.", id);
 						break;
 					case MOSQ_ERR_CONN_LOST:
-						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s closed its connection.", id);
+						if (context->address)
+						{
+							log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s (%s) closed its connection.", id, context->address);
+						}
+						else
+						{
+							log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s closed its connection.", id);
+						}
 						break;
 					case MOSQ_ERR_AUTH:
 						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s disconnected, not authorised.", id);
@@ -354,7 +361,7 @@ void do_disconnect(struct mosquitto *context, int reason)
 						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s been disconnected by administrative action.", id);
 						break;
 					case MOSQ_ERR_ERRNO:
-						log__printf(NULL, MOSQ_LOG_NOTICE, "Client %s disconnected: %s.", id, strerror(errno));
+						log__printf(NULL, MOSQ_LOG_NOTICE, "==> Client %s disconnected: %s.", id, strerror(errno));
 						break;
 					default:
 						log__printf(NULL, MOSQ_LOG_NOTICE, "Bad socket read/write on client %s: %s", id, mosquitto_strerror(reason));
@@ -372,5 +379,3 @@ void do_disconnect(struct mosquitto *context, int reason)
 		context__disconnect(context);
 	}
 }
-
-
