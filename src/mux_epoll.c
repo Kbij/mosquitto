@@ -310,6 +310,7 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 					if (err == SSL_ERROR_ZERO_RETURN)
 					{
 						do_disconnect(context, MOSQ_ERR_CONN_LOST);
+						read = false;
 					}
 				}			
 			}
