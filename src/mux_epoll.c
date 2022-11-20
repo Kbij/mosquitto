@@ -297,14 +297,20 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 			if (context && context->ssl)
 			{
 				uint8_t byte;
-				size_t bytesAvailable;				
-				if (SSL_peek_ex(context->ssl, &byte, 1, &bytesAvailable))
+				size_t bytesAvailable;
+				int ret = SSL_peek_ex(context->ssl, &byte, 1, &bytesAvailable); 			 
+				if (ret)
 				{
 					read = (bytesAvailable > 0);
 				}
 				else
 				{
-					do_disconnect(context, MOSQ_ERR_CONN_LOST);
+					int err;
+					err = SSL_get_error(mosq->ssl, ret);
+					if (err == SSL_ERROR_ZERO_RETURN)
+					{
+						do_disconnect(context, MOSQ_ERR_CONN_LOST);
+					}
 				}			
 			}
 			if (firstread && !read)
