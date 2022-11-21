@@ -291,43 +291,13 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 #endif
 			){
 
-		bool read = true;
-		bool firstread = true;
 		do{
-			if (context && context->ssl)
-			{
-				uint8_t byte;
-				size_t bytesAvailable;
-				int ret = SSL_peek_ex(context->ssl, &byte, 1, &bytesAvailable); 			 
-				if (ret)
-				{
-					read = (bytesAvailable > 0);
-				}
-				else
-				{
-					int err;
-					err = SSL_get_error(context->ssl, ret);
-					if (err == SSL_ERROR_ZERO_RETURN)
-					{
-						do_disconnect(context, MOSQ_ERR_CONN_LOST);
-						read = false;
-					}
-				}			
+			rc = packet__read(context);
+			if(rc){
+				do_disconnect(context, rc);
+				return;
 			}
-			if (firstread && !read)
-			{
-				log__printf(NULL, MOSQ_LOG_ERR, "First read, but no data found");
-			}
-			if (read)
-			{
-				rc = packet__read(context);
-				if(rc){
-					do_disconnect(context, rc);
-					return;
-				}
-			 }
-			 firstread = false;
-		}while((SSL_DATA_PENDING(context)) && read);
+		}while(SSL_DATA_PENDING(context));
 	}else{
 		if(events & (EPOLLERR | EPOLLHUP)){
 			do_disconnect(context, MOSQ_ERR_CONN_LOST);

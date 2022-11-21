@@ -359,9 +359,6 @@ struct mosquitto {
 	uint16_t remote_port;
 #endif
 	uint32_t events;
-
-	//Allow a few empty packets, then close
-	int empty_packets;
 };
 
 #define STREMPTY(str) (str[0] == '\0')
@@ -369,3 +366,4 @@ struct mosquitto {
 void do_client_disconnect(struct mosquitto *mosq, int reason_code, const mosquitto_property *properties);
 
 #endif
+

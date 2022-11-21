@@ -388,7 +388,6 @@ int packet__read(struct mosquitto *mosq)
 			errno = WSAGetLastError();
 #endif
 			if(errno == EAGAIN || errno == COMPAT_EWOULDBLOCK){
-				log__printf(mosq, MOSQ_LOG_DEBUG, "==> Client: %s, EAGAIN while getting packet type. errno: %d", mosq->id, errno);
 				return MOSQ_ERR_SUCCESS;
 			}else{
 				switch(errno){
@@ -397,10 +396,7 @@ int packet__read(struct mosquitto *mosq)
 					case COMPAT_EINTR:
 						return MOSQ_ERR_SUCCESS;
 					default:
-					{
-						log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, MOSQ_ERR_ERRNO while getting packet type. errno: %d", mosq->id, errno);
 						return MOSQ_ERR_ERRNO;
-					}
 				}
 			}
 		}
@@ -437,7 +433,6 @@ int packet__read(struct mosquitto *mosq)
 				errno = WSAGetLastError();
 #endif
 				if(errno == EAGAIN || errno == COMPAT_EWOULDBLOCK){
-					log__printf(mosq, MOSQ_LOG_DEBUG, "==> Client: %s, EAGAIN while getting packet length. errno: %d", mosq->id, errno);
 					return MOSQ_ERR_SUCCESS;
 				}else{
 					switch(errno){
@@ -446,10 +441,7 @@ int packet__read(struct mosquitto *mosq)
 						case COMPAT_EINTR:
 							return MOSQ_ERR_SUCCESS;
 						default:
-						{
-							log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, MOSQ_ERR_ERRNO while getting packet length. errno: %d", mosq->id, errno);
 							return MOSQ_ERR_ERRNO;
-						}
 					}
 				}
 			}
@@ -507,9 +499,7 @@ int packet__read(struct mosquitto *mosq)
 			mosq->in_packet.to_process = mosq->in_packet.remaining_length;
 		}
 	}
-
-	bool dataAvailable = true;
-	while(mosq->in_packet.to_process>0 && dataAvailable){
+	while(mosq->in_packet.to_process>0){
 		read_length = net__read(mosq, &(mosq->in_packet.payload[mosq->in_packet.pos]), mosq->in_packet.to_process);
 		if(read_length > 0){
 			G_BYTES_RECEIVED_INC(read_length);
@@ -542,29 +532,10 @@ int packet__read(struct mosquitto *mosq)
 					case COMPAT_EINTR:
 						return MOSQ_ERR_SUCCESS;
 					default:
-						{
-							log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, MOSQ_ERR_ERRNO while reading packet. errno: %d", mosq->id, errno);
-							return MOSQ_ERR_ERRNO;
-						}
+						return MOSQ_ERR_ERRNO;
 				}
 			}
 		}
-
-#ifdef WITH_TLS
-		if (mosq->ssl && mosq->in_packet.to_process>0)
-		{
-		//	uint8_t byte;
-			dataAvailable = SSL_pending(mosq->ssl); //SSL_peek(mosq->ssl, &byte, 1) > 0;
-			if (!dataAvailable || mosq->empty_packets > 0)
-			{
-				if (mosq->empty_packets > 0) log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Stop reading, no data available. Empty packets: %d", mosq->id, mosq->empty_packets);
-				return MOSQ_ERR_SUCCESS;
-			}else if (mosq->empty_packets > 0)
-			{
-				log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Empty packets: %d, dataavailable: %d", mosq->id, mosq->empty_packets, dataAvailable);
-			}
-		}
-#endif
 	}
 
 	/* All data for this packet is read. */

@@ -95,9 +95,6 @@ struct mosquitto *context__init(mosq_sock_t sock)
 	if((int)context->sock >= 0){
 		HASH_ADD(hh_sock, db.contexts_by_sock, sock, sizeof(context->sock), context);
 	}
-
-	context->empty_packets = 0;
-
 	return context;
 }
 
@@ -305,3 +302,4 @@ void context__remove_from_by_id(struct mosquitto *context)
 		context->in_by_id = false;
 	}
 }
+
