@@ -993,7 +993,7 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 			}
 		}
 		if(ret <= 0){
-			ret = net__handle_ssl(mosq, ret, true);
+			ret = net__handle_ssl(mosq, ret);
 		}
 		return (ssize_t )ret;
 	}else{
