@@ -990,6 +990,8 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 				log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Fixing SSL_read result.", mosq->id);
 				ret = -1;
 				errno = EAGAIN;
+
+				return (ssize_t )ret;
 			}
 		}
 		if(ret <= 0){
