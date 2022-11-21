@@ -984,7 +984,7 @@ ssize_t net__read(struct mosquitto *mosq, void *buf, size_t count)
 			//If SSL_read returns 0 bytes; check if there are maybe bytes that 
 			uint8_t byte;
 			size_t bytesAvailable;			
-			int peek_result = SSL_peek_ex(context->ssl, &byte, 1, &bytesAvailable);
+			int peek_result = SSL_peek_ex(mosq->ssl, &byte, 1, &bytesAvailable);
 			if (peek_result && bytesAvailable > 0)
 			{
 				log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, Fixing SSL_read result.", mosq->id);
