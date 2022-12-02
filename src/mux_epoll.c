@@ -307,9 +307,9 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 				}
 			}
 			else{
-				log__printf(NULL, MOSQ_LOG_ERR, "==> No read");
+				//log__printf(NULL, MOSQ_LOG_ERR, "==> No read");
 				if (context){
-					log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, empty read.", context->id);
+					//log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, empty read.", context->id);
 					++context->empty_packets;
 					if (context->empty_packets > 50)
 					{
