@@ -291,11 +291,37 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 #endif
 			){
 
+		bool read = true;
 		do{
-			rc = packet__read(context);
-			if(rc){
-				do_disconnect(context, rc);
-				return;
+			if (context && context->ssl)
+			{
+				uint8_t byte;
+				int available = SSL_peek(context->ssl, &byte, 1);
+				read = (available > 0);
+			}		
+			if (read)	
+			{
+				rc = packet__read(context);
+				if(rc){
+					do_disconnect(context, rc);
+					return;
+				}
+				else
+				{
+					context->empty_packets = 0;
+				}
+			}
+			else
+			{
+				if (context)
+				{
+					log__printf(mosq, MOSQ_LOG_ERR, "==> Client: %s, empty read.", context->id);
+					++context->empty_packets;
+					if (context->empty_packets > 5)
+					{
+						do_disconnect(context, rc);
+					}
+				}
 			}
 		}while(SSL_DATA_PENDING(context));
 	}else{
