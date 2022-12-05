@@ -305,9 +305,12 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 					if (err == SSL_ERROR_WANT_READ) {
 						//log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_READ", context->id);
 						//read = true;
-					}
+					}					
 					else if (err == SSL_ERROR_WANT_WRITE) {
 						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_WRITE. Do nothing", context->id);
+					}
+					else if (err == SSL_ERROR_ZERO_RETURN) {
+						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_ZERO_RETURN. Do nothing", context->id);
 					}
 					else
 					{
@@ -331,7 +334,7 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 					++context->empty_packets;
 					if (context->empty_packets > 50)
 					{
-						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, Closing connection.", context->id);
+						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, Closing connection. SHOULD NOT OCCUR ANYMORE", context->id);
 						do_disconnect(context, rc);
 					}
 				}
