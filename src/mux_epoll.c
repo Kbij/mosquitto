@@ -303,8 +303,8 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 					int err;
 					err = SSL_get_error(context->ssl, available);
 					if (err == SSL_ERROR_WANT_READ) {
-						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_READ", context->id);
-						read = true;
+						//log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_READ", context->id);
+						//read = true;
 					}
 					else if (err == SSL_ERROR_WANT_WRITE) {
 						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_WRITE. Do nothing", context->id);
