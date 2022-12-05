@@ -296,7 +296,25 @@ static void loop_handle_reads_writes(struct mosquitto *context, uint32_t events)
 			if (context && context->ssl){
 				uint8_t byte;
 				int available = SSL_peek(context->ssl, &byte, 1);
-				read = (available > 0);
+				if (available > 0){
+					read = true;
+				}
+				else {
+					int err;
+					err = SSL_get_error(context->ssl, available);
+					if (err == SSL_ERROR_WANT_READ) {
+						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_READ", context->id);
+						read = true;
+					}
+					else if (err == SSL_ERROR_WANT_WRITE) {
+						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error returns SSL_ERROR_WANT_WRITE. Do nothing", context->id);
+					}
+					else
+					{
+						log__printf(NULL, MOSQ_LOG_ERR, "==> Client: %s, SSL_get_error error; Closing connection. Err: %d", context->id, err);
+						do_disconnect(context, rc);
+					}
+				}
 			}		
 			if (read){
 				context->empty_packets = 0;
